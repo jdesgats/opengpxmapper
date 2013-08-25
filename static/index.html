@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="static/css/leaflet.css" />
+    <link rel="stylesheet" href="static/css/pure.min.css" />
+    <link rel="stylesheet" href="static/css/layout.css" />
+    <link rel="stylesheet" href="static/css/fontello.css" />
+    <!--[if lte IE 8]>
+      too bad... I don't care !
+    <![endif]-->
+  </head>
+  <body>
+    <script type="text/template" id="track-summary-template">
+      <div class="track-summary pure-g" data-id="<%=track_id%>">
+        <div class="pure-u-1-4">
+          <div class="track-badge">
+            <div class="track-length"><%=length%></div>
+            <div class="track-unit">km</div>
+          </div>
+        </div>
+        <div class="pure-u-3-4">
+          <h5 class="track-date"><%=date%></h5>
+          <h4 class="track-title"><%=title%></h4>
+          <p class="track-desc"><%=desc%></p>
+        </div>
+        
+        <div class="pure-u-1-4 track-desc">
+          <i class="icon-clock"></i> <%=duration%>
+        </div>
+        <div class="pure-u-1-4 track-desc">
+          <i class="icon-speed"></i> <%=speed%>km/h
+        </div>
+        <div class="pure-u-1-4 track-desc">
+          <i class="icon-up"></i> <%=uphill%>m
+        </div>
+        <div class="pure-u-1-4 track-desc">
+          <i class="icon-down"></i> <%=downhill%>m
+        </div>
+        
+        <div class="track-details track-details-hidden pure-u-1">
+        </div>
+      </div>
+    </script>
+  
+    <div class="pure-g-r content" id="layout">
+      <div class="pure-u" id="nav">
+      </div>
+      
+      <div class="pure-u-1" id="main">
+      </div>
+    </div>
+    
+    <script type="text/javascript" src="static/js/lib/require.js" data-main="static/js/main"></script>
+  </body>
+</html>

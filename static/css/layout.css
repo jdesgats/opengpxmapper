@@ -1,0 +1,84 @@
+/* WORKAROUND BUG #60 See https://github.com/yui/pure/issues/60. */
+.pure-g, .pure-g-r {
+  font-family: Arial;
+}
+
+body {
+    color: #333;
+}
+
+#nav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    overflow: auto;
+    width:350px;
+    background: rgb(37, 42, 58);
+    padding: 0.5em 0;
+}
+
+/* Track items */
+.track-summary {
+    padding: 0.4em 1em;
+    border-bottom: 1px solid #ddd;
+    border-left: 6px solid transparent;
+}
+.track-summary:hover {
+    background: rgb(55, 60, 90);
+}
+
+.track-badge {
+    background: #999;
+    padding: 0.5em;
+    margin: 0 0.5em 0.5em;
+    text-align: center;
+    border-radius: 3px;
+}
+
+.track-length,
+.track-unit {
+    text-align: center;
+}
+.track-length {
+    font-weight: bold;
+    font-size: 150%;
+}
+
+.track-date,
+.track-title,
+.track-desc {
+    margin: 0;
+}
+.track-date {
+    text-transform: uppercase;
+    color: #999;
+}
+.track-title,
+.track-desc {
+    color: #ccc;
+}
+.track-desc {
+    font-size: 0.8em;
+}
+
+#main {
+    background:url(../images/loading.gif) no-repeat center center;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 350px;
+    overflow: hidden;
+}
+
+/* misc */
+.track-details {
+    transition: 1s;
+    display: block;
+    overflow: hidden;
+    max-height: 200px;
+}
+.track-details-hidden {
+    max-height: 0;
+}
+
