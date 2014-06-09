@@ -1,6 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+#sys.path.insert(0, os.getcwd())
+
 import lib.gpxpy as gpxpy
 import sqlite3
-import sys
 import datetime
 
 db = sqlite3.connect("data/tracks.sqlite", detect_types=sqlite3.PARSE_DECLTYPES)
