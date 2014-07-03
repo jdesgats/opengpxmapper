@@ -33,7 +33,15 @@ function($, _, L, Aristochart, graph) {
       attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
-    
+
+    var center_map = function(emphased_tracks) {
+      var lat_min = _.chain(emphased_tracks).pluck("lat_min").min().value()
+      var lat_max = _.chain(emphased_tracks).pluck("lat_max").max().value()
+      var lon_min = _.chain(emphased_tracks).pluck("lon_min").min().value()
+      var lon_max = _.chain(emphased_tracks).pluck("lon_max").max().value() 
+      map.fitBounds([[lat_min, lon_min], [lat_max, lon_max]]);
+    }
+
     var display_track = function(track) {
       if (track.points) {
         // we got points in cache, display thme
@@ -51,6 +59,9 @@ function($, _, L, Aristochart, graph) {
         });
         track.layer = L.layerGroup([ line, decorator ]).addTo(map);
         track.item.css("border-left", "6px solid "+color); // FIXME: use CSS
+
+        // center map on enabled tracks
+        center_map(_.chain(tracks).values().filter(function(t) { return t.layer; }));
       } else {
         $.get("/tracks/"+track.track_id+"/points", function(data, status, xhr) {
           track.points = _.map(data, function(p) { return L.latLng(p.lat, p.lon); });
@@ -132,12 +143,7 @@ function($, _, L, Aristochart, graph) {
            .on("click", toggle_graphs);
       });
 
-      // map
-      var lat_min = _.chain(new_tracks).pluck("lat_min").min().value()
-      var lat_max = _.chain(new_tracks).pluck("lat_max").max().value()
-      var lon_min = _.chain(new_tracks).pluck("lon_min").min().value()
-      var lon_max = _.chain(new_tracks).pluck("lon_max").max().value() 
-      map.fitBounds([[lat_min, lon_min], [lat_max, lon_max]]);
+      center_map(new_tracks);
      
       //FIXME: debugging only
       window.map = map;
@@ -183,13 +189,7 @@ function($, _, L, Aristochart, graph) {
         tags[t.tag_name] = t;
       }
 
-      // map
-      var lat_min = _.chain(data).pluck("lat_min").min().value()
-      var lat_max = _.chain(data).pluck("lat_max").max().value()
-      var lon_min = _.chain(data).pluck("lon_min").min().value()
-      var lon_max = _.chain(data).pluck("lon_max").max().value()
-      map.fitBounds([[lat_min, lon_min], [lat_max, lon_max]]);
- 
+      center_map(data);
     };
 
     $.get("/tags", display_tag_list);
