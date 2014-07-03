@@ -31,5 +31,11 @@ create table point(
   constraint pk_points primary key (track_id, seq)
 );
 
+create table tag(
+  track_id integer not null references track(track_id),
+  tag_name text not null,
+  constraint pk_points primary key (track_id, tag_name)
+);
+
 -- indexes used for downsampling
 --create index ids_point_dist on point (track_id, )

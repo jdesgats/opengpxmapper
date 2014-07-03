@@ -2,6 +2,7 @@ import json
 import os
 import datetime
 import math
+import io
 from pprint import pprint # debug only
 
 import bottle
@@ -9,6 +10,7 @@ import bottle
 # this is a customized version (PARSE_DECLTYPES and streaming responses)
 import bottle_sqlite
 import aggregate as agg
+import gpximport
 
 APP_ROOT = "."
 
@@ -31,10 +33,51 @@ def index():
 def static(path):
   return bottle.static_file(path, root=os.path.join(APP_ROOT, "static"))
 
+@app.route("/tags")
+def tag_list(db):
+  bottle.response.set_header("Content-Type", "application/json")
+  return DateJSONEncoder().iterencode(list(map(dict, db.execute("""
+    SELECT tag_name,
+      COUNT(*) AS track_count,
+      MIN(lat_min) AS lat_min,
+      MAX(lat_max) AS lat_max,
+      MIN(lon_min) AS lon_min,
+      MAX(lon_max) AS lon_max
+    FROM tag
+    JOIN track USING (track_id)
+    GROUP BY tag_name"""))))
+
+@app.route("/tags/<tag_name>")
+def tracks_by_tag(tag_name, db):
+  bottle.response.set_header("Content-Type", "application/json")
+  #FIXME: WTF?????? this is done for post data but not for uris ??? WTF????
+  tag_name = tag_name.encode("iso8859-1").decode("utf-8")
+  tracks = db.execute("""
+    SELECT track.*
+    FROM tag
+    JOIN track USING (track_id)
+    WHERE tag_name=?""", (tag_name, )).fetchall()
+  if len(tracks) == 0: bottle.abort(404, "No such tag.")
+  return DateJSONEncoder().iterencode(list(map(dict, tracks)))
+
 @app.route("/tracks")
 def track_list(db):
   bottle.response.set_header("Content-Type", "application/json")
   return DateJSONEncoder().iterencode(list(map(dict, db.execute("SELECT * FROM track"))))
+
+@app.route("/tracks", method="POST")
+def add_track(db):
+  name = bottle.request.forms.name
+  tags = bottle.request.forms.tags.split()
+  gpx = bottle.request.files.gpxfile
+
+  if not (name and tags and gpx):
+    bottle.abort(400, "Incomplete request: some fileds missing.")
+
+  gpximport.process_gpx_file(io.TextIOWrapper(gpx.file, "utf-8"), name, tags, db)
+  db.commit()
+  bottle.response.status = 303
+  bottle.response.set_header('Location', '/') 
 
 @app.route("/tracks/<track_id:int>")
 def track_detail(track_id, db):
@@ -132,4 +175,4 @@ def track_downsample(track_id, db):
     last_point = p
   yield "]"
 
-app.run(host='0.0.0.0', port=8080, debug=True)
+app.run(host='0.0.0.0', port=8080, debug=True, reloader=True)

@@ -22,10 +22,17 @@ function($, _, L, Aristochart, graph) {
       '#3A5F0B', // green
     ];
     var color_index = 0;
-    var map;
+    var map = L.map("main");
+    var tags = { };             // tag_name => [ track_info, ... ]
     var tracks = { };           // track_id => track_info
     var item_tmpl = _.template(document.getElementById("track-summary-template").text);
+    var tag_tmpl = _.template(document.getElementById("tag-template").text);
     var graphMarker;
+
+    L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
     
     var display_track = function(track) {
       if (track.points) {
@@ -89,7 +96,6 @@ function($, _, L, Aristochart, graph) {
         {
           var track = tracks[parseInt($(this).data("id"))];
           $.get("/tracks/"+track.track_id+"/downsampled", { method: "time", points: 100 }, function(data, status, xhr) {
-            console.log("Got " + data.length + " downsampled points");
             _.each([graph.speedGraph, graph.altGraph], function(f) {
               var graph = f(details[0], data);
               $(graph.canvas).on("pointselected", moveMarker)
@@ -102,19 +108,15 @@ function($, _, L, Aristochart, graph) {
       }
     }
 
-    var init = function(data, status, xhr) {
-      // parse data
-      for(var i=0; i<data.length; i++) {
-        var t = data[i];
-        t.start_date = new Date(t.start_date);
-        t.end_date = new Date(t.end_date);
-        t.duration = (t.end_date.getTime() - t.start_date.getTime()) / 1000;
-        tracks[t.track_id] = t;
-      }
+    var display_tracks = function(new_tracks) {
+      var container = $("#track-list");
 
-      // render
-      var container = document.getElementById("nav");
-      _.chain(tracks).values().sortBy(function(t) { return -t.start_date.getTime() }).each(function(t) {
+      // remove any previously displayed track
+      _.each(tracks, hide_track);
+      container.empty();
+
+      // render new content
+      _.chain(new_tracks).sortBy(function(t) { return -t.start_date.getTime() }).each(function(t) {
         tracks[t.track_id].item = $(item_tmpl({
           track_id: t.track_id,
           length: Math.round(t.distance / 1000),
@@ -129,25 +131,67 @@ function($, _, L, Aristochart, graph) {
            .on("click", toggle_track)
            .on("click", toggle_graphs);
       });
-      
+
       // map
-      var lat_min = _.chain(tracks).pluck("lat_min").min().value()
-      var lat_max = _.chain(tracks).pluck("lat_max").max().value()
-      var lon_min = _.chain(tracks).pluck("lon_min").min().value()
-      var lon_max = _.chain(tracks).pluck("lon_max").max().value()
-      
-      map = L.map('main');
+      var lat_min = _.chain(new_tracks).pluck("lat_min").min().value()
+      var lat_max = _.chain(new_tracks).pluck("lat_max").max().value()
+      var lon_min = _.chain(new_tracks).pluck("lon_min").min().value()
+      var lon_max = _.chain(new_tracks).pluck("lon_max").max().value() 
       map.fitBounds([[lat_min, lon_min], [lat_max, lon_max]]);
-      L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(map);
-      L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
-      
+     
       //FIXME: debugging only
       window.map = map;
     };
 
-    
-    $.get("/tracks", init);
+    var activate_tag = function(e) {
+      var tag = $(this).data("tag-name");
+      var tag_tracks = tags[tag].tracks;
+
+      // swap button enable state
+      $("#tag-list>*").removeClass("pure-button-active");
+      $(this).addClass("pure-button-active");
+      document.getElementById("tag-list")
+
+      if (tag_tracks) {
+        return display_tracks(tag_tracks);
+      }
+
+      // not in cache, fetch it
+      $.get("/tags/" + tag, function(data, status, xhr) {
+        var tag_tracks = []
+        for(var i=0; i<data.length; i++) {
+          var t = data[i];
+          t.start_date = new Date(t.start_date);
+          t.end_date = new Date(t.end_date);
+          t.duration = (t.end_date.getTime() - t.start_date.getTime()) / 1000;
+          tracks[t.track_id] = t;
+          tag_tracks.push(t);
+        }
+        tags[tag].tracks = tag_tracks;
+
+        return display_tracks(tag_tracks);
+      });
+    }
+
+    var display_tag_list = function(data, status, xhr) {
+      var container = document.getElementById("tag-list");
+      for(var i=0; i<data.length; i++) {
+        var t = data[i];
+        t.item = $(tag_tmpl(t))
+          .appendTo(container)
+          .on("click", activate_tag);
+        tags[t.tag_name] = t;
+      }
+
+      // map
+      var lat_min = _.chain(data).pluck("lat_min").min().value()
+      var lat_max = _.chain(data).pluck("lat_max").max().value()
+      var lon_min = _.chain(data).pluck("lon_min").min().value()
+      var lon_max = _.chain(data).pluck("lon_max").max().value()
+      map.fitBounds([[lat_min, lon_min], [lat_max, lon_max]]);
+ 
+    };
+
+    $.get("/tags", display_tag_list);
   };
 });

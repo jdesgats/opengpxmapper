@@ -9,9 +9,6 @@ import lib.gpxpy as gpxpy
 import sqlite3
 import datetime
 
-db = sqlite3.connect("data/tracks.sqlite", detect_types=sqlite3.PARSE_DECLTYPES)
-gpx = gpxpy.parse(sys.stdin)
-
 def utc(d):
   """ As default datetime converter for datetime is not able to handle timezont, let's remove it..."""
   d = d if d.tzinfo is None else d.astimezone(datetime.timezone.utc)
@@ -27,8 +24,7 @@ def sanitize(points):
       print("Drop point %s because it is not chronologically ordered." % p)
   return out
 
-for track in gpx.tracks:
-  print("Import", track.name)
+def process_track(track, name, tags, db):
   # merge segments as we don't support them
   while len(track.segments) > 1: track.join(0, 1)
   seg = track.segments[0]
@@ -46,9 +42,9 @@ for track in gpx.tracks:
       ele_min, ele_max)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
     (
-      track.name,
+      name or track.name,
       utc(t.start_time), utc(t.end_time),
-      track.length_3d(), gpx.get_moving_data().max_speed,
+      track.length_3d(), track.get_moving_data().max_speed,
       hill.uphill, hill.downhill,
       b.min_latitude, b.max_latitude,
       b.min_longitude, b.max_longitude,
@@ -66,5 +62,14 @@ for track in gpx.tracks:
   db.executemany(
     "INSERT INTO point (track_id, seq, timestamp, lat, lon, ele, speed, distance_from_prev, distance_from_start, time_from_start) VALUES (?,?,?,?,?,?,?,?,?,?)",
     map(point_data, points, range(len(points))))
+  db.executemany("INSERT INTO tag (tag_name, track_id) VALUES (?,?)", (( t, track_id ) for t in tags))
 
-db.commit()
+def process_gpx_file(gpx_file, name, tags, db):
+  gpx = gpxpy.parse(gpx_file)
+  for track in gpx.tracks:
+    process_track(track, name, tags, db)
+
+if __name__ == "__main__":
+  db = sqlite3.connect("data/tracks.sqlite", detect_types=sqlite3.PARSE_DECLTYPES)
+  process_gpx_file(sys.stdin, None, [], db)
+  db.commit()
