@@ -83,6 +83,7 @@ class SQLitePlugin(object):
             if dictrows: db.row_factory = sqlite3.Row
             # Add the connection handle as a keyword argument.
             kwargs[keyword] = db
+            rv = None
 
             try:
                 rv = callback(*args, **kwargs)

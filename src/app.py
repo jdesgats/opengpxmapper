@@ -40,7 +40,7 @@ def track_list(db):
 def track_detail(track_id, db):
   bottle.response.set_header("Content-Type", "application/json")
   t = db.execute("SELECT * FROM track WHERE track_id=?", (track_id, )).fetchone()
-  if t is None: abort(404, "No such track.")
+  if t is None: bottle.abort(404, "No such track.")
   return DateJSONEncoder().iterencode(dict(t))
 
 @app.route("/tracks/<track_id:int>/points")
@@ -50,7 +50,7 @@ def track_points(track_id, db):
   # points we are going to enumerate
   #TODO: make a look-ahead iterator to detect it without an extra request
   pt_count = db.execute("SELECT count(*) FROM point WHERE track_id=?", (track_id, )).fetchone()
-  if pt_count is None: abort(404, "No such track.")
+  if pt_count is None: bottle.abort(404, "No such track.")
   
   pt_count = pt_count[0]
   points = db.execute("""
@@ -84,7 +84,7 @@ def track_downsample(track_id, db):
   if pt_count is None or pt_count <= 1: raise bottle.HTTPError(400, "Incorrect point count.")
 
   total_range = db.execute(method[0], (track_id, )).fetchone()
-  if total_range is None: abort(404, "No such track.")
+  if total_range is None: bottle.abort(404, "No such track.")
   
   total_range = total_range[0] / (pt_count - 1)
   points = db.execute("""
@@ -128,7 +128,7 @@ def track_downsample(track_id, db):
       current_group = group
       accumulator = agg.Composite(lat=agg.Middle(), lon=agg.Middle(), ele=agg.Middle(), speed=agg.Avg(), timestamp=agg.Middle(datetime.datetime.max, datetime.datetime.min))
       accumulator.step(p)
-    else: abort(500, "Incorrect data set")
+    else: bottle.abort(500, "Incorrect data set")
     last_point = p
   yield "]"
 
