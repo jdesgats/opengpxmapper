@@ -29,6 +29,9 @@ class DateJSONEncoder(json.JSONEncoder):
 def index():
   return static("index.html")
 
+@app.route('/robots.txt')
+def robots(): return static("robots.txt")
+
 @app.route("/static/<path:path>")
 def static(path):
   return bottle.static_file(path, root=os.path.join(APP_ROOT, "static"))
